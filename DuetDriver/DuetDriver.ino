@@ -24,6 +24,20 @@
 * Gate  -> scl (int0)
 * Echo  -> sda (int1)
 * 
+* ===================
+* ==   Changelog   ==
+* ===================
+* 
+* Jul 5th 2021
+* 
+* depth measurements were extremely erroneous, often way too low.
+* - increased the number of samples to be averaged from 8 to 32 and made the 
+*   number of samples a #define (see depth_samples and speed_buckets) 
+* - switched all pins from "INPUT" to "INPUT_PULLUP" as there were spurious
+*   signals detected by the speed log, resulting in a 1Kn displayed speed at rest
+*   that was not an issue once there were true pulses coming in. Seems the built in
+*   micro is a bit over-sensitive.
+*   
 */
 
 
@@ -40,6 +54,8 @@
 #define measurement_start 1
 #define measurement_valid 2
 #define measurement_gated 3
+#define depth_samples 32
+#define speed_buckets 8
 
 auto timer = timer_create_default();
 
@@ -48,7 +64,7 @@ volatile uint8_t depth_valid;
 volatile uint32_t t_gate;
 uint32_t depth,speed;
 uint8_t  depth_h,depth_l;
-uint32_t depth_arr[8],speed_arr[8];
+uint32_t depth_arr[depth_samples],speed_arr[speed_buckets];
 uint8_t sample_d,sample_s,i,t_flag;
 
 static void startMeasure(){
@@ -65,7 +81,7 @@ static void stopMeasure(){
     t_echo=0;
     t_flag=0;
   }
-  depth_arr[sample_d==8?sample_d=0:sample_d++]=t_echo;
+  depth_arr[sample_d==depth_samples?sample_d=0:sample_d++]=t_echo;
   //digitalWrite(led,LOW);
 }
 
@@ -87,23 +103,25 @@ static void printValues(){
    * and I'll calculate the actual time here
    * 
    */
-  for(i=0;i<=7;i++){
+  for(i=0;i<=depth_samples-1;i++){
     depth=depth+depth_arr[i];
+  }
+  for(i=0;i<=speed_buckets-1;i++){
     speed=speed+speed_arr[i];
   }
   /* 
    * depth first, average of last eight measurements 
    */
-  depth=depth/8*10/133;
+  depth=depth/depth_samples*10/133;
 
   /*
    * increase the bucket counter and
    * zero the new bucket to use
    */
-  sample_s==8?sample_s=0:sample_s++;
+  sample_s==speed_buckets?sample_s=0:sample_s++;
   speed_arr[sample_s]=0;
 
-  speed=(speed*knots_per_1000hertz/100)/(8*print_interval/1000);
+  speed=(speed*knots_per_1000hertz/100)/(speed_buckets*print_interval/1000);
 
   noInterrupts();
   digitalWrite(led,HIGH);
@@ -138,12 +156,12 @@ void setup() {
   /* 
    * Pin modes for the three input and the one output pins 
    */
-  pinMode(p_speed, INPUT);
+  pinMode(p_speed, INPUT_PULLUP);
   
-  pinMode(p_gate, INPUT);
+  pinMode(p_gate, INPUT_PULLUP);
   digitalWrite(p_gate,HIGH);
   
-  pinMode(p_echo, INPUT); // for testing only
+  pinMode(p_echo, INPUT_PULLUP); // for testing only
   digitalWrite(p_echo,HIGH);
   
   pinMode(led,OUTPUT);
