@@ -54,7 +54,7 @@
 #define measurement_start 1
 #define measurement_valid 2
 #define measurement_gated 3
-#define depth_samples 32
+#define depth_samples 16
 #define speed_buckets 8
 
 auto timer = timer_create_default();
@@ -81,13 +81,34 @@ static void stopMeasure(){
     t_echo=0;
     t_flag=0;
   }
-  depth_arr[sample_d==depth_samples?sample_d=0:sample_d++]=t_echo;
+  if(t_echo>20){
+    depth_arr[sample_d==depth_samples?sample_d=0:sample_d++]=t_echo;
+  }
   //digitalWrite(led,LOW);
 }
 
+<<<<<<< HEAD
 bool printValues(void *){
   char buffer[64];
   
+=======
+bool printDepthDebug(){
+  for(i=0;i<=depth_samples-1;i++){
+    Serial.print("t[");
+    Serial.print(i);
+    Serial.print("]=");
+    Serial.println(depth_arr[i]);
+    Serial.println("==========");
+  }
+  wdt_reset();
+  return true;
+}
+
+bool printValues(){
+  //char buffer[64];
+  depth=0;
+  speed=0;
+>>>>>>> 034117730765391ae6aa2583ce8049c62b5e2eb6
   /*
    * summing up the values for 'depth_samples' measurements as a simplistic high pass filter
    * the data colletion for depth and speed are very different.
@@ -188,7 +209,12 @@ void setup() {
   attachInterrupt(p_speed,speedCount,FALLING);
   
   timer.every(print_interval,printValues); // this calls the printValues routine every 500ms. Just around the serialPrint statements, the above interrupts will be disabled
+<<<<<<< HEAD
   //Serial.println("started");
+=======
+  //timer.every(print_interval,printDepthDebug);
+  Serial.println("started");
+>>>>>>> 034117730765391ae6aa2583ce8049c62b5e2eb6
 }
 
 
