@@ -85,16 +85,15 @@ static void stopMeasure(){
   //digitalWrite(led,LOW);
 }
 
-static void printValues(){
+bool printValues(void *){
   char buffer[64];
-  depth=0;
-  speed=0;
+  
   /*
-   * summing up the values for eight measurements as a simplistic high pass filter
+   * summing up the values for 'depth_samples' measurements as a simplistic high pass filter
    * the data colletion for depth and speed are very different.
-   * depth will hold the returns for the last eight pings which, depending on how
+   * depth will hold the returns for the last 'depth samples' pings which, depending on how
    * often this printValues() function will be called, may or may not have overlap 
-   * with the previous period. It's basically an average of the last eigh no matter.
+   * with the previous period. It's basically an average of the last measurements no matter.
    * For speed, there's a new bucket every time we call this function and every bucket
    * just counts the number of times the paddle wheel has 'clicked'.
    * For this specific device, it turns out that 1Hz corresponds to 0.19knots, if the 
@@ -103,16 +102,29 @@ static void printValues(){
    * and I'll calculate the actual time here
    * 
    */
+  
+  
+  /* 
+   * depth first, average of last measurements 
+   */
+  
+  depth=0;
   for(i=0;i<=depth_samples-1;i++){
     depth=depth+depth_arr[i];
   }
+  
+  depth=depth/depth_samples*10/133;
+
+  /*
+   * speed next, also an average over the last 'speed_buckets' values
+   */
+  
+  speed=0;
   for(i=0;i<=speed_buckets-1;i++){
     speed=speed+speed_arr[i];
   }
-  /* 
-   * depth first, average of last eight measurements 
-   */
-  depth=depth/depth_samples*10/133;
+  
+  speed=(speed*knots_per_1000hertz/100)/(speed_buckets*print_interval/1000);
 
   /*
    * increase the bucket counter and
@@ -121,10 +133,8 @@ static void printValues(){
   sample_s==speed_buckets?sample_s=0:sample_s++;
   speed_arr[sample_s]=0;
 
-  speed=(speed*knots_per_1000hertz/100)/(speed_buckets*print_interval/1000);
-
   noInterrupts();
-  digitalWrite(led,HIGH);
+  //digitalWrite(led,HIGH);
   printSentenceWithChecksum("$SDDBT,,f,"+String(depth/100)+"."+String(depth%100)+",M,F*", false);
   printSentenceWithChecksum("$VWVHW,,,,,"+String(speed/10)+"."+String(speed%10)+",N,,,*", false);
   /*
@@ -136,9 +146,11 @@ static void printValues(){
    * printf2(speed,1); 
    * Serial.print("N,,,;\r\n");  
   */
-  digitalWrite(led,LOW);
+  //digitalWrite(led,LOW);
   interrupts();
+  //digitalWrite(led,HIGH);
   wdt_reset();
+  //digitalWrite(led,LOW);
   return true;
 }
 
@@ -176,7 +188,7 @@ void setup() {
   attachInterrupt(p_speed,speedCount,FALLING);
   
   timer.every(print_interval,printValues); // this calls the printValues routine every 500ms. Just around the serialPrint statements, the above interrupts will be disabled
-  Serial.println("started");
+  //Serial.println("started");
 }
 
 
@@ -195,7 +207,7 @@ uint32_t m2f(uint32_t l){
   return l*554/1000;
 }
 
-uint32_t printf2(uint32_t v,uint8_t d){
+void printf2(uint32_t v,uint8_t d){
   int e;
   /*
    * the switch statement is technically a dirty hack but for reasons unexplained,
