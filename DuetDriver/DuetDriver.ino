@@ -38,6 +38,11 @@
 *   that was not an issue once there were true pulses coming in. Seems the built in
 *   micro is a bit over-sensitive.
 *   
+* Jul 8th 2021
+* depth measurement was faulty as almost every 2nd measurement showed 0. Implemented a gate of min 20ms, 
+* now the correct depth is shown.
+* ready to use.
+* 
 */
 
 
