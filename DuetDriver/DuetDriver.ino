@@ -98,7 +98,7 @@ static void stopMeasure(){
   //digitalWrite(led,LOW);
 }
 
-bool printDepthDebug(){
+bool printDepthDebug(void *){
   for(i=0;i<=depth_samples-1;i++){
     Serial.print("t[");
     Serial.print(i);
@@ -110,7 +110,7 @@ bool printDepthDebug(){
   return true;
 }
 
-bool printValues(){
+bool printValues(void *){
   //char buffer[64];
   depth=0;
   speed=0;
