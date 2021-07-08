@@ -82,21 +82,22 @@ static void startMeasure(){
 static void stopMeasure(){
   t_echo=micros()-t_gate-400;
   t_flag--;
-  if(t_flag&&1!=0 | digitalRead(p_gate)!=HIGH) {
+  if(t_flag!=0 | digitalRead(p_gate)!=HIGH) {
+    /* we have called startMeasure() more than once
+     * without calling stopMeasure(), 
+     * or the echo came back while gate was still 
+     * active. in both cases, the result is invalid
+     * reset flag to 0 to begin a new measurement
+     * and don't record the erroneous value
+     */
     t_echo=0;
     t_flag=0;
-  }
-  if(t_echo>20){
+  }else{
     depth_arr[sample_d==depth_samples?sample_d=0:sample_d++]=t_echo;
   }
   //digitalWrite(led,LOW);
 }
 
-<<<<<<< HEAD
-bool printValues(void *){
-  char buffer[64];
-  
-=======
 bool printDepthDebug(){
   for(i=0;i<=depth_samples-1;i++){
     Serial.print("t[");
@@ -113,7 +114,6 @@ bool printValues(){
   //char buffer[64];
   depth=0;
   speed=0;
->>>>>>> 034117730765391ae6aa2583ce8049c62b5e2eb6
   /*
    * summing up the values for 'depth_samples' measurements as a simplistic high pass filter
    * the data colletion for depth and speed are very different.
@@ -163,18 +163,7 @@ bool printValues(){
   //digitalWrite(led,HIGH);
   printSentenceWithChecksum("$SDDBT,,f,"+String(depth/100)+"."+String(depth%100)+",M,F*", false);
   printSentenceWithChecksum("$VWVHW,,,,,"+String(speed/10)+"."+String(speed%10)+",N,,,*", false);
-  /*
-   * Serial.print("$SDDBT,,f,");
-   * printf2(depth,2);
-   * Serial.print("M,");
-   * Serial.print(",F;\r\n");
-   * Serial.print("$VWVHW,,,,");
-   * printf2(speed,1); 
-   * Serial.print("N,,,;\r\n");  
-  */
-  //digitalWrite(led,LOW);
   interrupts();
-  //digitalWrite(led,HIGH);
   wdt_reset();
   //digitalWrite(led,LOW);
   return true;
@@ -214,14 +203,8 @@ void setup() {
   attachInterrupt(p_speed,speedCount,FALLING);
   
   timer.every(print_interval,printValues); // this calls the printValues routine every 500ms. Just around the serialPrint statements, the above interrupts will be disabled
-<<<<<<< HEAD
-  //Serial.println("started");
-=======
   //timer.every(print_interval,printDepthDebug);
-  Serial.println("started");
->>>>>>> 034117730765391ae6aa2583ce8049c62b5e2eb6
 }
-
 
 void loop() {
   /*
